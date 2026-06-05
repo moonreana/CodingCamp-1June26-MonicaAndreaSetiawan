@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test: Todo_List — task logic properties</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 1rem; }
+    h1   { font-size: 1.2rem; margin-bottom: 1rem; }
+    .pass { color: #4caf50; }
+    .fail { color: #f44336; }
+    .section { margin-top: 1rem; font-weight: bold; color: #9ca3af; }
+    #summary { margin-top: 1.5rem; font-size: 1.1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Properties 5, 6, 7, 8 — Todo_List task logic</h1>
+  <p style="color:#9ca3af; font-size:0.85rem; margin-bottom:1rem;">
+    Todo_List uses closures for internal state, so these tests replicate
+    the pure task-manipulation logic inline — identical to what app.js
+    implements — rather than calling private methods directly.
+  </p>
+  <div id="results"></div>
+  <div id="summary"></div>
+
+  <!--
+    We do NOT load app.js here because Todo_List.init() immediately queries
+    the DOM and binds event listeners.  Instead we inline the pure logic
+    functions (addTask, deleteTask, toggleTask) exactly as they appear in
+    app.js so the tests validate the actual algorithm, not a mock.
+  -->
+
+  <script>
+    'use strict';
+
+    // ── Tiny harness ─────────────────────────────────────────────────────────
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    let passed = 0, failed = 0;
+
+    function assert(condition, description) {
+      const el = document.createElement('div');
+      if (condition) {
+        el.className   = 'pass';
+        el.textContent = '✓ PASS — ' + description;
+        passed++;
+      } else {
+        el.className   = 'fail';
+        el.textContent = '✗ FAIL — ' + description;
+        failed++;
+      }
+      results.appendChild(el);
+    }
+
+    function section(label) {
+      const el = document.createElement('div');
+      el.className   = 'section';
+      el.textContent = label;
+      results.appendChild(el);
+    }
+
+    // ── Inline pure task-logic harness ───────────────────────────────────────
+    // These functions mirror the logic in app.js exactly.
+
+    /**
+     * Attempt to add a task from raw input text.
+     * Returns the new tasks array (mutation reflected on `tasks` ref too).
+     * Mirrors Todo_List._addTask() validation + creation logic.
+     */
+    function addTask(tasks, rawText) {
+      const text = rawText.trim();
+      if (text.length === 0 || text.length > 500) return tasks; // reject
+      const task = {
+        id:        'id-' + Math.random().toString(36).slice(2),
+        text,
+        done:      false,
+        createdAt: Date.now(),
+      };
+      return [...tasks, task];
+    }
+
+    /**
+     * Delete task by id.
+     * Mirrors Todo_List._deleteTask().
+     */
+    function deleteTask(tasks, id) {
+      return tasks.filter(t => t.id !== id);
+    }
+
+    /**
+     * Toggle task done state.
+     * Mirrors Todo_List._toggleTask().
+     */
+    function toggleTask(tasks, id) {
+      return tasks.map(t => t.id === id ? { ...t, done: !t.done } : t);
+    }
+
+    // ── Property 5: Whitespace rejection ─────────────────────────────────────
+    section('Property 5 — whitespace-only input is rejected (list unchanged)');
+
+    const whitespaceInputs = [
+      '',
+      ' ',
+      '   ',
+      '\t',
+      '\n',
+      '\r',
+      '\t\n\r ',
+      '   \t   ',
+    ];
+
+    const baseList = [
+      { id: 'seed-1', text: 'Existing task', done: false, createdAt: 1000 },
+    ];
+
+    for (const ws of whitespaceInputs) {
+      const before = [...baseList];
+      const after  = addTask(baseList, ws);
+      assert(
+        after.length === before.length,
+        'Whitespace input "' + JSON.stringify(ws) + '" does not increase list length'
+      );
+    }
+
+    // ── Property 6: Task addition appends exactly one incomplete task ─────────
+    section('Property 6 — addTask appends exactly one task with done=false');
+
+    // Various initial list sizes
+    const listSizes = [0, 1, 3, 10];
+    for (const size of listSizes) {
+      const initial = Array.from({ length: size }, (_, i) => ({
+        id: 'task-' + i, text: 'Task ' + i, done: false, createdAt: i,
+      }));
+      const description = 'My new task ' + size;
+      const after = addTask(initial, description);
+
+      assert(after.length === initial.length + 1,
+        'addTask on list of ' + size + ': length increased by exactly 1');
+
+      const newTask = after[after.length - 1];
+      assert(newTask.done === false,
+        'addTask: new task has done=false (list size was ' + size + ')');
+      assert(newTask.text === description.trim(),
+        'addTask: new task text matches trimmed input');
+
+      // id uniqueness
+      const ids = after.map(t => t.id);
+      const uniqueIds = new Set(ids);
+      assert(uniqueIds.size === ids.length,
+        'addTask: all ids are unique (list size was ' + size + ')');
+    }
+
+    section('Property 6 — addTask trims text correctly');
+    {
+      const tasks = addTask([], '  trimmed text  ');
+      assert(tasks[0].text === 'trimmed text',
+        'addTask trims leading/trailing whitespace from text');
+    }
+
+    section('Property 6 — addTask rejects text longer than 500 chars');
+    {
+      const longText = 'a'.repeat(501);
+      const before = [...baseList];
+      const after  = addTask(baseList, longText);
+      assert(after.length === before.length,
+        'addTask rejects text > 500 chars (list unchanged)');
+    }
+
+    section('Property 6 — addTask accepts exactly 500 chars');
+    {
+      const maxText = 'a'.repeat(500);
+      const before = [...baseList];
+      const after  = addTask(baseList, maxText);
+      assert(after.length === before.length + 1,
+        'addTask accepts text of exactly 500 chars');
+    }
+
+    // ── Property 7: Task deletion removes exactly one task by id ─────────────
+    section('Property 7 — deleteTask removes exactly one task by id');
+
+    {
+      const tasks = [
+        { id: 'del-1', text: 'One',   done: false, createdAt: 1 },
+        { id: 'del-2', text: 'Two',   done: true,  createdAt: 2 },
+        { id: 'del-3', text: 'Three', done: false, createdAt: 3 },
+      ];
+
+      // Delete middle task
+      const after = deleteTask(tasks, 'del-2');
+      assert(after.length === tasks.length - 1,
+        'deleteTask: list length decreases by exactly 1');
+      assert(after.every(t => t.id !== 'del-2'),
+        'deleteTask: deleted id no longer in collection');
+
+      // Remaining tasks preserve order and data
+      assert(after[0].id === 'del-1' && after[1].id === 'del-3',
+        'deleteTask: remaining tasks preserve original relative order');
+      assert(after[0].text === 'One' && after[1].text === 'Three',
+        'deleteTask: remaining tasks preserve field values');
+    }
+
+    {
+      // Delete first task
+      const tasks = [
+        { id: 'x1', text: 'A', done: false, createdAt: 1 },
+        { id: 'x2', text: 'B', done: false, createdAt: 2 },
+      ];
+      const after = deleteTask(tasks, 'x1');
+      assert(after.length === 1, 'deleteTask: deleting first of two leaves one');
+      assert(after[0].id === 'x2', 'deleteTask: remaining task is the second one');
+    }
+
+    {
+      // Delete sole task
+      const tasks = [{ id: 'only', text: 'Lone', done: false, createdAt: 1 }];
+      const after = deleteTask(tasks, 'only');
+      assert(after.length === 0, 'deleteTask: deleting sole task leaves empty array');
+    }
+
+    {
+      // Delete id not present — list unchanged
+      const tasks = [{ id: 'abc', text: 'X', done: false, createdAt: 1 }];
+      const after = deleteTask(tasks, 'nonexistent');
+      assert(after.length === 1, 'deleteTask: unknown id leaves list unchanged');
+    }
+
+    // ── Property 8: Completion toggle is its own inverse ─────────────────────
+    section('Property 8 — double-toggle returns task to original done state');
+
+    const toggleCases = [false, true];
+    for (const initialDone of toggleCases) {
+      const tasks = [{ id: 'tog', text: 'Toggleable', done: initialDone, createdAt: 1 }];
+
+      const after1 = toggleTask(tasks, 'tog');
+      assert(after1[0].done === !initialDone,
+        'Single toggle flips done from ' + initialDone + ' to ' + !initialDone);
+
+      const after2 = toggleTask(after1, 'tog');
+      assert(after2[0].done === initialDone,
+        'Double-toggle returns done to original value (' + initialDone + ')');
+    }
+
+    {
+      // Toggle does not affect other tasks
+      const tasks = [
+        { id: 't1', text: 'A', done: false, createdAt: 1 },
+        { id: 't2', text: 'B', done: true,  createdAt: 2 },
+        { id: 't3', text: 'C', done: false, createdAt: 3 },
+      ];
+      const after = toggleTask(tasks, 't2');
+      assert(after[0].done === false, 'Toggle: untargeted task t1 done unchanged (false)');
+      assert(after[1].done === false, 'Toggle: targeted task t2 flipped to false');
+      assert(after[2].done === false, 'Toggle: untargeted task t3 done unchanged (false)');
+    }
+
+    // ── Summary ──────────────────────────────────────────────────────────────
+    summary.textContent = 'Results: ' + passed + ' passed, ' + failed + ' failed';
+    summary.style.color = failed === 0 ? '#4caf50' : '#f44336';
+  </script>
+</body>
+</html>

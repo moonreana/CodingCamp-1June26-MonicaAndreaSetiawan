@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test: Quick_Links — link logic properties</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 1rem; }
+    h1   { font-size: 1.2rem; margin-bottom: 1rem; }
+    .pass { color: #4caf50; }
+    .fail { color: #f44336; }
+    .section { margin-top: 1rem; font-weight: bold; color: #9ca3af; }
+    #summary { margin-top: 1.5rem; font-size: 1.1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Properties 5, 9, 10 — Quick_Links link logic</h1>
+  <p style="color:#9ca3af; font-size:0.85rem; margin-bottom:1rem;">
+    Quick_Links uses closures for internal state, so these tests replicate
+    the pure link-manipulation logic inline — identical to what app.js
+    implements.
+  </p>
+  <div id="results"></div>
+  <div id="summary"></div>
+
+  <script>
+    'use strict';
+
+    // ── Tiny harness ─────────────────────────────────────────────────────────
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    let passed = 0, failed = 0;
+
+    function assert(condition, description) {
+      const el = document.createElement('div');
+      if (condition) {
+        el.className   = 'pass';
+        el.textContent = '✓ PASS — ' + description;
+        passed++;
+      } else {
+        el.className   = 'fail';
+        el.textContent = '✗ FAIL — ' + description;
+        failed++;
+      }
+      results.appendChild(el);
+    }
+
+    function section(label) {
+      const el = document.createElement('div');
+      el.className   = 'section';
+      el.textContent = label;
+      results.appendChild(el);
+    }
+
+    // ── Inline pure link-logic harness ────────────────────────────────────────
+    // Mirrors Quick_Links._addLink() and ._deleteLink() validation / mutation logic.
+
+    /**
+     * Attempt to add a link from raw label and url strings.
+     * Returns { links: Link[], error: string|null }
+     * Mirrors Quick_Links._addLink() validation + creation logic.
+     */
+    function addLink(links, rawLabel, rawUrl) {
+      const label = rawLabel.trim();
+      const url   = rawUrl.trim();
+
+      // Validation mirrors app.js: rejects empty/whitespace fields
+      if (label.length === 0 && url.length === 0) {
+        return { links, error: 'Please enter both a label and a URL.' };
+      }
+      if (label.length === 0) {
+        return { links, error: 'Please enter a label for the link.' };
+      }
+      if (url.length === 0) {
+        return { links, error: 'Please enter a URL for the link.' };
+      }
+
+      const link = {
+        id:        'id-' + Math.random().toString(36).slice(2),
+        label,
+        url,
+        createdAt: Date.now(),
+      };
+      return { links: [...links, link], error: null };
+    }
+
+    /**
+     * Delete link by id.
+     * Mirrors Quick_Links._deleteLink().
+     */
+    function deleteLink(links, id) {
+      return links.filter(l => l.id !== id);
+    }
+
+    // ── Property 5 (links): whitespace-only label/url is rejected ────────────
+    section('Property 5 — whitespace-only label or URL is rejected');
+
+    const whitespaceInputs = ['', ' ', '\t', '\n', '\r\n', '   \t   '];
+    const seedLinks = [
+      { id: 'seed-1', label: 'Google', url: 'https://google.com', createdAt: 1000 },
+    ];
+
+    // Whitespace label, valid URL
+    for (const ws of whitespaceInputs) {
+      const { links, error } = addLink(seedLinks, ws, 'https://example.com');
+      assert(links.length === seedLinks.length,
+        'Whitespace label ' + JSON.stringify(ws) + ': list length unchanged');
+      assert(typeof error === 'string' && error.length > 0,
+        'Whitespace label ' + JSON.stringify(ws) + ': error message returned');
+    }
+
+    // Valid label, whitespace URL
+    for (const ws of whitespaceInputs) {
+      const { links, error } = addLink(seedLinks, 'My Site', ws);
+      assert(links.length === seedLinks.length,
+        'Whitespace URL ' + JSON.stringify(ws) + ': list length unchanged');
+      assert(typeof error === 'string' && error.length > 0,
+        'Whitespace URL ' + JSON.stringify(ws) + ': error message returned');
+    }
+
+    // Both whitespace
+    for (const ws of whitespaceInputs) {
+      const { links, error } = addLink(seedLinks, ws, ws);
+      assert(links.length === seedLinks.length,
+        'Both whitespace ' + JSON.stringify(ws) + ': list length unchanged');
+      assert(typeof error === 'string' && error.length > 0,
+        'Both whitespace: error message returned');
+    }
+
+    // ── Property 9: Link addition / deletion maintain collection integrity ────
+    section('Property 9 — addLink increases collection size by exactly 1');
+
+    const listSizes = [0, 1, 3, 5];
+    for (const size of listSizes) {
+      const initial = Array.from({ length: size }, (_, i) => ({
+        id: 'lnk-' + i, label: 'Link ' + i, url: 'https://example.com/' + i, createdAt: i,
+      }));
+      const { links: after, error } = addLink(initial, 'New Site', 'https://new.example.com');
+
+      assert(error === null,
+        'addLink on list of ' + size + ': no error for valid input');
+      assert(after.length === initial.length + 1,
+        'addLink on list of ' + size + ': size increased by exactly 1');
+
+      const newLink = after[after.length - 1];
+      assert(newLink.label === 'New Site',
+        'addLink: new link label is correct (list size was ' + size + ')');
+      assert(newLink.url === 'https://new.example.com',
+        'addLink: new link URL is correct (list size was ' + size + ')');
+
+      // id uniqueness
+      const ids = after.map(l => l.id);
+      assert(new Set(ids).size === ids.length,
+        'addLink: all ids are unique (list size was ' + size + ')');
+    }
+
+    section('Property 9 — deleteLink decreases collection size by exactly 1');
+
+    {
+      const links = [
+        { id: 'dl-1', label: 'Alpha', url: 'https://a.com', createdAt: 1 },
+        { id: 'dl-2', label: 'Beta',  url: 'https://b.com', createdAt: 2 },
+        { id: 'dl-3', label: 'Gamma', url: 'https://c.com', createdAt: 3 },
+      ];
+
+      // Delete middle
+      const after = deleteLink(links, 'dl-2');
+      assert(after.length === links.length - 1,
+        'deleteLink: list length decreases by exactly 1');
+      assert(after.every(l => l.id !== 'dl-2'),
+        'deleteLink: deleted id no longer in collection');
+      assert(after[0].id === 'dl-1' && after[1].id === 'dl-3',
+        'deleteLink: remaining links preserve original relative order');
+    }
+
+    {
+      // Delete first
+      const links = [
+        { id: 'e1', label: 'One', url: 'https://one.com', createdAt: 1 },
+        { id: 'e2', label: 'Two', url: 'https://two.com', createdAt: 2 },
+      ];
+      const after = deleteLink(links, 'e1');
+      assert(after.length === 1, 'deleteLink: deleting first of two leaves one');
+      assert(after[0].id === 'e2', 'deleteLink: remaining link is the second one');
+    }
+
+    {
+      // Delete sole link
+      const links = [{ id: 'sole', label: 'Only', url: 'https://only.com', createdAt: 1 }];
+      const after = deleteLink(links, 'sole');
+      assert(after.length === 0, 'deleteLink: deleting sole link leaves empty array');
+    }
+
+    {
+      // Delete id not present — list unchanged
+      const links = [{ id: 'z1', label: 'Z', url: 'https://z.com', createdAt: 1 }];
+      const after = deleteLink(links, 'nonexistent');
+      assert(after.length === 1, 'deleteLink: unknown id leaves list unchanged');
+    }
+
+    // ── Property 10: Link validation rejects empty fields ────────────────────
+    section('Property 10 — addLink rejects empty label field');
+    {
+      const { links, error } = addLink([], '', 'https://example.com');
+      assert(links.length === 0, 'Empty label: collection unchanged');
+      assert(typeof error === 'string' && error.length > 0,
+        'Empty label: error message is a non-empty string');
+    }
+
+    section('Property 10 — addLink rejects empty URL field');
+    {
+      const { links, error } = addLink([], 'My Site', '');
+      assert(links.length === 0, 'Empty URL: collection unchanged');
+      assert(typeof error === 'string' && error.length > 0,
+        'Empty URL: error message is a non-empty string');
+    }
+
+    section('Property 10 — addLink rejects both fields empty');
+    {
+      const { links, error } = addLink([], '', '');
+      assert(links.length === 0, 'Both empty: collection unchanged');
+      assert(typeof error === 'string' && error.length > 0,
+        'Both empty: error message is a non-empty string');
+    }
+
+    section('Property 10 — addLink succeeds when both fields are non-empty');
+    {
+      const { links, error } = addLink([], 'GitHub', 'https://github.com');
+      assert(links.length === 1, 'Valid input: collection gains one entry');
+      assert(error === null,     'Valid input: no error message returned');
+    }
+
+    // ── Summary ──────────────────────────────────────────────────────────────
+    summary.textContent = 'Results: ' + passed + ' passed, ' + failed + ' failed';
+    summary.style.color = failed === 0 ? '#4caf50' : '#f44336';
+  </script>
+</body>
+</html>

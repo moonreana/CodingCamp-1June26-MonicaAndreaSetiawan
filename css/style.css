@@ -1,0 +1,441 @@
+/* =============================================================
+   CSS Custom Properties — Dark theme (default)
+   ============================================================= */
+:root,
+[data-theme="dark"] {
+  --color-bg:           #1a1a2e;
+  --color-surface:      #16213e;
+  --color-surface-alt:  #1e2a45;
+  --color-text:         #e0e0e0;
+  --color-text-muted:   #9ca3af;
+  --color-accent:       #0f3460;
+  --color-accent-hover: #533483;
+  --color-done:         #6c757d;
+  --color-border:       #2a3a5a;
+  --color-error-bg:     #4a1c1c;
+  --color-error-text:   #f8d7da;
+  --color-error-border: #f5c6cb;
+  --color-success:      #4caf50;
+
+  /* Typography */
+  --text-heading:    1.5rem;    /* 24 px */
+  --text-subheading: 1.125rem;  /* 18 px */
+  --text-body:       0.875rem;  /* 14 px */
+
+  /* Timer display */
+  --timer-font:      3rem;
+}
+
+/* =============================================================
+   Light theme overrides
+   ============================================================= */
+[data-theme="light"] {
+  --color-bg:           #f0f2f5;
+  --color-surface:      #ffffff;
+  --color-surface-alt:  #e8ecf1;
+  --color-text:         #1a1a2e;
+  --color-text-muted:   #6b7280;
+  --color-accent:       #0f3460;
+  --color-accent-hover: #533483;
+  --color-done:         #9ca3af;
+  --color-border:       #d1d5db;
+  --color-error-bg:     #fef2f2;
+  --color-error-text:   #991b1b;
+  --color-error-border: #fca5a5;
+  --color-success:      #166534;
+}
+
+/* =============================================================
+   Minimal Reset
+   ============================================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* =============================================================
+   Base / Body
+   ============================================================= */
+body {
+  background-color: var(--color-bg);
+  color:            var(--color-text);
+  font-family:      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Helvetica, Arial, sans-serif, "Apple Color Emoji";
+  font-size:        var(--text-body);
+  line-height:      1.6;
+  min-height:       100vh;
+  transition:       background-color 0.25s ease, color 0.25s ease;
+}
+
+/* =============================================================
+   Top Bar
+   ============================================================= */
+.topbar {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         0.6rem 1.5rem;
+  background:      var(--color-surface);
+  border-bottom:   1px solid var(--color-border);
+  position:        sticky;
+  top:             0;
+  z-index:         100;
+}
+
+.topbar-title {
+  font-size:   var(--text-subheading);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+#theme-toggle {
+  background:    transparent;
+  border:        1px solid var(--color-border);
+  border-radius: 6px;
+  padding:       0.3rem 0.6rem;
+  cursor:        pointer;
+  font-size:     1.1rem;
+  line-height:   1;
+  transition:    background 0.15s ease, border-color 0.15s ease;
+  color:         var(--color-text);
+}
+
+#theme-toggle:hover {
+  background:    var(--color-surface-alt);
+  border-color:  var(--color-accent-hover);
+}
+
+/* =============================================================
+   Dashboard Grid
+   ============================================================= */
+.dashboard-grid {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows:    auto auto;
+  gap:                   1.5rem;
+  padding:               1.5rem;
+}
+
+/* =============================================================
+   Widget Card
+   ============================================================= */
+.widget {
+  background:    var(--color-surface);
+  border-radius: 10px;
+  padding:       1.5rem;
+  border:        1px solid var(--color-border);
+  transition:    background 0.25s ease, border-color 0.25s ease;
+  display:       flex;
+  flex-direction: column;
+  gap:           0.75rem;
+}
+
+.widget h2 {
+  font-size:   var(--text-heading);
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.widget-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  flex-wrap:       wrap;
+  gap:             0.5rem;
+}
+
+/* =============================================================
+   Typography helpers
+   ============================================================= */
+.widget h3,
+.widget label,
+.widget .subheading {
+  font-size: var(--text-subheading);
+}
+
+.widget p,
+.widget li,
+.widget span,
+.widget input,
+.widget button,
+.widget select {
+  font-size: var(--text-body);
+}
+
+/* =============================================================
+   Buttons (shared)
+   ============================================================= */
+.widget button {
+  background:    var(--color-accent);
+  color:         var(--color-text);
+  border:        none;
+  border-radius: 5px;
+  padding:       0.4rem 0.85rem;
+  cursor:        pointer;
+  transition:    background 0.15s ease, opacity 0.15s ease;
+  white-space:   nowrap;
+}
+
+.widget button:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.widget button:disabled {
+  opacity: 0.38;
+  cursor:  not-allowed;
+}
+
+/* =============================================================
+   Inputs & Select
+   ============================================================= */
+.widget input[type="text"],
+.widget input[type="url"],
+.widget input[type="number"],
+.widget input:not([type]),
+.widget select {
+  background:   var(--color-surface-alt);
+  color:        var(--color-text);
+  border:       1px solid var(--color-border);
+  border-radius: 5px;
+  padding:      0.4rem 0.6rem;
+  transition:   border-color 0.15s ease, background 0.25s ease;
+}
+
+.widget input:focus,
+.widget select:focus {
+  border-color: var(--color-accent-hover);
+  outline:      none;
+}
+
+.widget input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* =============================================================
+   Universal Focus Indicators (WCAG 2.1 SC 2.4.11)
+   ============================================================= */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline:        2px solid var(--color-accent-hover);
+  outline-offset: 2px;
+}
+
+/* =============================================================
+   Greeting Widget
+   ============================================================= */
+.widget--greeting #greeting-text {
+  font-size:   var(--text-subheading);
+  font-weight: 600;
+}
+
+.widget--greeting #greeting-time {
+  font-size:   2rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.widget--greeting #greeting-date {
+  color: var(--color-text-muted);
+}
+
+/* =============================================================
+   Focus Timer Widget
+   ============================================================= */
+#timer-display {
+  font-size:      var(--timer-font);
+  font-weight:    700;
+  letter-spacing: 0.06em;
+  text-align:     center;
+  padding:        0.5rem 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-config {
+  display:     flex;
+  align-items: center;
+  gap:         0.5rem;
+  flex-wrap:   wrap;
+}
+
+.timer-config label {
+  font-size:   var(--text-body);
+  color:       var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.timer-config input[type="number"] {
+  width: 5rem;
+}
+
+.timer-controls {
+  display: flex;
+  gap:     0.5rem;
+  flex-wrap: wrap;
+}
+
+#timer-message {
+  font-size:   var(--text-subheading);
+  font-weight: 600;
+  color:       var(--color-accent-hover);
+  text-align:  center;
+}
+
+/* =============================================================
+   To-Do List Widget
+   ============================================================= */
+.todo-add-row {
+  display: flex;
+  gap:     0.5rem;
+}
+
+.todo-add-row input {
+  flex: 1;
+}
+
+.sort-row {
+  display:     flex;
+  align-items: center;
+  gap:         0.4rem;
+}
+
+.sort-row label {
+  font-size:   var(--text-body);
+  color:       var(--color-text-muted);
+  white-space: nowrap;
+}
+
+#todo-list-ul {
+  list-style: none;
+  display:    flex;
+  flex-direction: column;
+  gap:        0.4rem;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px; /* prevent scrollbar overlap */
+}
+
+/* Scrollbar styling */
+#todo-list-ul::-webkit-scrollbar { width: 5px; }
+#todo-list-ul::-webkit-scrollbar-track { background: transparent; }
+#todo-list-ul::-webkit-scrollbar-thumb {
+  background:    var(--color-border);
+  border-radius: 3px;
+}
+
+#todo-list-ul li {
+  display:      flex;
+  align-items:  center;
+  gap:          0.5rem;
+  padding:      0.4rem 0.5rem;
+  border-radius: 5px;
+  background:   var(--color-surface-alt);
+  border:       1px solid var(--color-border);
+}
+
+#todo-list-ul li.done .task-text {
+  text-decoration: line-through;
+  color:           var(--color-done);
+}
+
+.task-text {
+  flex:        1;
+  word-break:  break-word;
+}
+
+.task-edit-input {
+  flex: 1;
+}
+
+/* Small action buttons inside task rows */
+.task-edit-btn,
+.task-delete-btn {
+  padding:   0.25rem 0.55rem;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.task-delete-btn {
+  background: #7f1d1d;
+}
+.task-delete-btn:hover:not(:disabled) {
+  background: #991b1b;
+}
+
+/* =============================================================
+   Quick Links Widget
+   ============================================================= */
+.links-add-row {
+  display:   flex;
+  gap:       0.5rem;
+  flex-wrap: wrap;
+}
+
+.links-add-row input {
+  flex: 1;
+  min-width: 8rem;
+}
+
+#links-container {
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       0.5rem;
+}
+
+.link-item {
+  display:     flex;
+  align-items: center;
+  gap:         0.25rem;
+}
+
+.link-launch-btn {
+  max-width:     180px;
+  overflow:      hidden;
+  text-overflow: ellipsis;
+  white-space:   nowrap;
+}
+
+.link-delete-btn {
+  background: transparent;
+  border:     1px solid var(--color-border);
+  padding:    0.25rem 0.4rem;
+  font-size:  0.9rem;
+  color:      var(--color-text-muted);
+}
+.link-delete-btn:hover:not(:disabled) {
+  background: #7f1d1d;
+  color:      #f8d7da;
+  border-color: transparent;
+}
+
+/* =============================================================
+   Alert / Validation / Error Boxes
+   ============================================================= */
+#storage-error-banner,
+#link-validation-msg,
+.storage-unavailable-warning {
+  background:    var(--color-error-bg);
+  color:         var(--color-error-text);
+  border:        1px solid var(--color-error-border);
+  border-radius: 5px;
+  padding:       0.45rem 0.75rem;
+  font-size:     var(--text-body);
+}
+
+/* =============================================================
+   Responsive — single column at ≤ 768 px
+   ============================================================= */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .widget-header {
+    flex-direction: column;
+    align-items:    flex-start;
+  }
+}

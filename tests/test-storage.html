@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test: Storage_Manager — round-trip &amp; graceful recovery</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 1rem; }
+    h1   { font-size: 1.2rem; margin-bottom: 1rem; }
+    .pass { color: #4caf50; }
+    .fail { color: #f44336; }
+    .section { margin-top: 1rem; font-weight: bold; color: #9ca3af; }
+    #summary { margin-top: 1.5rem; font-size: 1.1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Property 3 &amp; 4 — Storage_Manager round-trip and graceful recovery</h1>
+  <div id="results"></div>
+  <div id="summary"></div>
+
+  <!-- Minimal DOM stubs so other widget inits don't throw -->
+  <p id="greeting-text" style="display:none"></p>
+  <p id="greeting-time" style="display:none"></p>
+  <p id="greeting-date" style="display:none"></p>
+  <div id="timer-display" style="display:none"></div>
+  <button id="timer-start" style="display:none"></button>
+  <button id="timer-stop"  style="display:none"></button>
+  <button id="timer-reset" style="display:none"></button>
+  <p id="timer-message"    style="display:none"></p>
+  <input id="todo-input"    style="display:none" />
+  <button id="todo-add-btn" style="display:none"></button>
+  <ul id="todo-list-ul"     style="display:none"></ul>
+  <input id="link-label-input" style="display:none" />
+  <input id="link-url-input"   style="display:none" />
+  <button id="link-add-btn"    style="display:none"></button>
+  <p id="link-validation-msg"  style="display:none"></p>
+  <div id="links-container"    style="display:none"></div>
+  <div id="storage-error-banner" style="display:none"></div>
+  <section id="todo-list"   style="display:none"></section>
+  <section id="quick-links" style="display:none"></section>
+
+  <script src="../js/app.js"></script>
+  <script>
+    'use strict';
+
+    // ── Tiny harness ─────────────────────────────────────────────────────────
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    let passed = 0, failed = 0;
+
+    function assert(condition, description) {
+      const el = document.createElement('div');
+      if (condition) {
+        el.className   = 'pass';
+        el.textContent = '✓ PASS — ' + description;
+        passed++;
+      } else {
+        el.className   = 'fail';
+        el.textContent = '✗ FAIL — ' + description;
+        failed++;
+      }
+      results.appendChild(el);
+    }
+
+    function section(label) {
+      const el = document.createElement('div');
+      el.className   = 'section';
+      el.textContent = label;
+      results.appendChild(el);
+    }
+
+    // Use an isolated test key so we don't pollute production data
+    const TEST_KEY = '__tld_test__';
+
+    // Deep equality helper (simple, for plain objects / arrays of plain objects)
+    function deepEqual(a, b) {
+      return JSON.stringify(a) === JSON.stringify(b);
+    }
+
+    // ── Property 3: Collection serialisation round-trip ───────────────────────
+
+    section('Property 3 — Task array round-trip');
+
+    // Empty array
+    {
+      const arr = [];
+      Storage_Manager.write(TEST_KEY, arr);
+      const back = Storage_Manager.read(TEST_KEY);
+      assert(deepEqual(back, arr), 'Empty Task array round-trips to []');
+    }
+
+    // Single task
+    {
+      const arr = [{
+        id: 'aaa-111',
+        text: 'Buy groceries',
+        done: false,
+        createdAt: 1748908800000,
+      }];
+      Storage_Manager.write(TEST_KEY, arr);
+      const back = Storage_Manager.read(TEST_KEY);
+      assert(deepEqual(back, arr),        'Single Task: round-trip deep equality');
+      assert(back.length === 1,           'Single Task: count is 1');
+      assert(back[0].id === arr[0].id,    'Single Task: id preserved');
+      assert(back[0].text === arr[0].text,'Single Task: text preserved');
+      assert(back[0].done === arr[0].done,'Single Task: done preserved');
+      assert(back[0].createdAt === arr[0].createdAt, 'Single Task: createdAt preserved');
+    }
+
+    // Multiple tasks (order must be preserved)
+    {
+      const arr = [
+        { id: 'aaa-1', text: 'Task one',   done: false, createdAt: 1000 },
+        { id: 'aaa-2', text: 'Task two',   done: true,  createdAt: 2000 },
+        { id: 'aaa-3', text: 'Task three', done: false, createdAt: 3000 },
+      ];
+      Storage_Manager.write(TEST_KEY, arr);
+      const back = Storage_Manager.read(TEST_KEY);
+      assert(back.length === 3, 'Multiple tasks: count matches (3)');
+      assert(deepEqual(back, arr), 'Multiple tasks: deep equality (order preserved)');
+      assert(back[1].done === true, 'Multiple tasks: done flag on second task preserved');
+    }
+
+    section('Property 3 — Link array round-trip');
+
+    // Single link
+    {
+      const arr = [{
+        id:        'bbb-222',
+        label:     'GitHub',
+        url:       'https://github.com',
+        createdAt: 1748908900000,
+      }];
+      Storage_Manager.write(TEST_KEY, arr);
+      const back = Storage_Manager.read(TEST_KEY);
+      assert(deepEqual(back, arr),            'Single Link: round-trip deep equality');
+      assert(back[0].label === arr[0].label,  'Single Link: label preserved');
+      assert(back[0].url   === arr[0].url,    'Single Link: url preserved');
+    }
+
+    // Multiple links
+    {
+      const arr = [
+        { id: 'bbb-1', label: 'Google',   url: 'https://google.com',  createdAt: 100 },
+        { id: 'bbb-2', label: 'MDN',      url: 'https://developer.mozilla.org', createdAt: 200 },
+      ];
+      Storage_Manager.write(TEST_KEY, arr);
+      const back = Storage_Manager.read(TEST_KEY);
+      assert(back.length === 2,    'Multiple links: count matches (2)');
+      assert(deepEqual(back, arr), 'Multiple links: deep equality (order preserved)');
+    }
+
+    // ── Property 4: Graceful recovery from corrupt / null data ───────────────
+
+    section('Property 4 — returns [] for absent key (null)');
+    {
+      localStorage.removeItem(TEST_KEY);
+      let result;
+      let threw = false;
+      try { result = Storage_Manager.read(TEST_KEY); }
+      catch (e) { threw = true; }
+      assert(!threw,              'No exception thrown for absent key');
+      assert(Array.isArray(result), 'Returns an array for absent key');
+      assert(result.length === 0, 'Returns [] for absent key');
+    }
+
+    section('Property 4 — returns [] for malformed JSON');
+    const corruptPayloads = [
+      '',
+      '{',
+      'null',
+      'undefined',
+      '{"not":"an array"}',
+      'true',
+      '42',
+      '"a plain string"',
+      '[unclosed',
+      '\x00\x01\x02',
+      'SELECT * FROM tasks',
+    ];
+    for (const payload of corruptPayloads) {
+      localStorage.setItem(TEST_KEY, payload);
+      let result;
+      let threw = false;
+      try { result = Storage_Manager.read(TEST_KEY); }
+      catch (e) { threw = true; }
+      assert(!threw,               'No exception for payload: ' + JSON.stringify(payload.slice(0, 30)));
+      assert(Array.isArray(result), 'Returns array for payload: ' + JSON.stringify(payload.slice(0, 30)));
+      assert(result.length === 0,  'Returns [] for payload: ' + JSON.stringify(payload.slice(0, 30)));
+    }
+
+    section('Property 4 — write returns { ok: true } on success');
+    {
+      const writeResult = Storage_Manager.write(TEST_KEY, [{ id: '1', text: 'test', done: false, createdAt: 0 }]);
+      assert(writeResult.ok === true, 'write() returns { ok: true } on success');
+    }
+
+    // Cleanup test key
+    localStorage.removeItem(TEST_KEY);
+
+    // ── Summary ──────────────────────────────────────────────────────────────
+    summary.textContent = 'Results: ' + passed + ' passed, ' + failed + ' failed';
+    summary.style.color = failed === 0 ? '#4caf50' : '#f44336';
+  </script>
+</body>
+</html>

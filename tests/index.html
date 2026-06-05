@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test Suite Index — To-Do Life Dashboard</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0;
+           padding: 2rem; max-width: 640px; }
+    h1   { font-size: 1.3rem; margin-bottom: 0.5rem; }
+    p    { color: #9ca3af; font-size: 0.85rem; margin-bottom: 1.5rem; }
+    ul   { list-style: none; padding: 0; }
+    li   { margin: 0.5rem 0; }
+    a    { color: #818cf8; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .prop { color: #6c757d; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <h1>Test Suite — To-Do Life Dashboard</h1>
+  <p>Open each file individually via file:// — tests run on load and report
+     PASS / FAIL directly in the page.</p>
+  <ul>
+    <li>
+      <a href="test-greeting.html">test-greeting.html</a>
+      <span class="prop">— Property 1: getGreeting() band coverage (all 24 hours)</span>
+    </li>
+    <li>
+      <a href="test-timer.html">test-timer.html</a>
+      <span class="prop">— Property 2: formatTime() correctness [0,1500] + Property 11: start/stop round-trip</span>
+    </li>
+    <li>
+      <a href="test-storage.html">test-storage.html</a>
+      <span class="prop">— Property 3: Storage_Manager round-trip + Property 4: graceful recovery from corrupt data</span>
+    </li>
+    <li>
+      <a href="test-todo.html">test-todo.html</a>
+      <span class="prop">— Property 5: whitespace rejection + Property 6: task add + Property 7: task delete + Property 8: toggle inverse</span>
+    </li>
+    <li>
+      <a href="test-links.html">test-links.html</a>
+      <span class="prop">— Property 5: whitespace rejection (links) + Property 9: add/delete integrity + Property 10: empty-field validation</span>
+    </li>
+  </ul>
+</body>
+</html>

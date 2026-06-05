@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test: Greeting_Widget — getGreeting()</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 1rem; }
+    h1   { font-size: 1.2rem; margin-bottom: 1rem; }
+    .pass { color: #4caf50; }
+    .fail { color: #f44336; }
+    .section { margin-top: 1rem; font-weight: bold; color: #9ca3af; }
+    #summary { margin-top: 1.5rem; font-size: 1.1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Property 1 — getGreeting() band coverage</h1>
+  <div id="results"></div>
+  <div id="summary"></div>
+
+  <!--
+    app.js defines getGreeting as a standalone named function on the global
+    scope (not inside a module), so loading the script gives us access to it
+    directly.  We use a minimal stub DOM so Storage_Manager.init() and the
+    widget inits don't throw when they find missing elements.
+  -->
+
+  <!-- Minimal DOM stubs required by Storage_Manager + widget init calls -->
+  <p id="greeting-text" style="display:none"></p>
+  <p id="greeting-time" style="display:none"></p>
+  <p id="greeting-date" style="display:none"></p>
+  <div id="timer-display" style="display:none"></div>
+  <button id="timer-start" style="display:none"></button>
+  <button id="timer-stop"  style="display:none"></button>
+  <button id="timer-reset" style="display:none"></button>
+  <p id="timer-message"    style="display:none"></p>
+  <input id="todo-input"   style="display:none" />
+  <button id="todo-add-btn" style="display:none"></button>
+  <ul id="todo-list-ul"    style="display:none"></ul>
+  <input id="link-label-input" style="display:none" />
+  <input id="link-url-input"   style="display:none" />
+  <button id="link-add-btn"    style="display:none"></button>
+  <p id="link-validation-msg"  style="display:none"></p>
+  <div id="links-container"    style="display:none"></div>
+  <div id="storage-error-banner" style="display:none"></div>
+  <section id="todo-list"   style="display:none"></section>
+  <section id="quick-links" style="display:none"></section>
+
+  <script src="../js/app.js"></script>
+  <script>
+    'use strict';
+
+    // ── Tiny harness ─────────────────────────────────────────────────────────
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    let passed = 0, failed = 0;
+
+    function assert(condition, description) {
+      const el = document.createElement('div');
+      if (condition) {
+        el.className   = 'pass';
+        el.textContent = '✓ PASS — ' + description;
+        passed++;
+      } else {
+        el.className   = 'fail';
+        el.textContent = '✗ FAIL — ' + description;
+        failed++;
+      }
+      results.appendChild(el);
+    }
+
+    function section(label) {
+      const el = document.createElement('div');
+      el.className   = 'section';
+      el.textContent = label;
+      results.appendChild(el);
+    }
+
+    // ── Property 1: getGreeting band coverage ────────────────────────────────
+    // For every integer hour in [0, 23] verify:
+    //   (a) the result is one of the four valid strings
+    //   (b) the result matches the correct band
+
+    const VALID = new Set(['Good Morning', 'Good Afternoon', 'Good Evening', 'Good Night']);
+    const BANDS = {
+      'Good Morning'   : [5, 6, 7, 8, 9, 10, 11],
+      'Good Afternoon' : [12, 13, 14, 15, 16, 17],
+      'Good Evening'   : [18, 19, 20],
+      'Good Night'     : [0, 1, 2, 3, 4, 21, 22, 23],
+    };
+
+    // Build reverse map: hour → expected greeting
+    const EXPECTED = {};
+    for (const [greeting, hours] of Object.entries(BANDS)) {
+      for (const h of hours) EXPECTED[h] = greeting;
+    }
+
+    section('Result is always one of the four valid strings');
+    for (let h = 0; h <= 23; h++) {
+      const result = getGreeting(h);
+      assert(
+        VALID.has(result),
+        'hour ' + h + ' → "' + result + '" is a valid greeting string'
+      );
+    }
+
+    section('Result matches the correct band for every hour');
+    for (let h = 0; h <= 23; h++) {
+      const result   = getGreeting(h);
+      const expected = EXPECTED[h];
+      assert(
+        result === expected,
+        'hour ' + h + ' → "' + result + '" (expected "' + expected + '")'
+      );
+    }
+
+    section('Boundary hours are correct');
+    const boundaries = [
+      [0,  'Good Night'],
+      [4,  'Good Night'],
+      [5,  'Good Morning'],
+      [11, 'Good Morning'],
+      [12, 'Good Afternoon'],
+      [17, 'Good Afternoon'],
+      [18, 'Good Evening'],
+      [20, 'Good Evening'],
+      [21, 'Good Night'],
+      [23, 'Good Night'],
+    ];
+    for (const [h, expected] of boundaries) {
+      assert(
+        getGreeting(h) === expected,
+        'boundary hour ' + h + ' → "' + getGreeting(h) + '" (expected "' + expected + '")'
+      );
+    }
+
+    // ── Summary ──────────────────────────────────────────────────────────────
+    summary.textContent = 'Results: ' + passed + ' passed, ' + failed + ' failed';
+    summary.style.color = failed === 0 ? '#4caf50' : '#f44336';
+  </script>
+</body>
+</html>

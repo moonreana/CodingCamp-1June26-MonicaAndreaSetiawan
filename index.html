@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>To-Do Life Dashboard</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+
+    <!-- Top bar: theme toggle -->
+    <header class="topbar">
+      <span class="topbar-title">To-Do List Life Dashboard</span>
+      <button id="theme-toggle" aria-label="Switch to light mode" title="Toggle light / dark mode">
+        <span id="theme-icon">☀️</span>
+      </button>
+    </header>
+
+    <div class="dashboard-grid">
+
+      <!-- Greeting Widget -->
+      <section id="greeting-widget" class="widget widget--greeting">
+        <h2>Welcome</h2>
+        <p id="greeting-text"></p>
+        <p id="greeting-time"></p>
+        <p id="greeting-date"></p>
+      </section>
+
+      <!-- Focus Timer Widget -->
+      <section id="focus-timer" class="widget widget--timer">
+        <h2>Focus Timer</h2>
+
+        <div id="timer-display">25:00</div>
+        <p id="timer-message" hidden>Session complete! 🎉</p>
+
+        <!-- Custom duration row -->
+        <div class="timer-config">
+          <label for="timer-duration-input">Minutes:</label>
+          <input id="timer-duration-input" type="number" min="1" max="120" value="25"
+                 aria-label="Set timer duration in minutes" />
+          <button id="timer-set-btn">Set</button>
+        </div>
+
+        <!-- Controls -->
+        <div class="timer-controls">
+          <button id="timer-start">▶ Start</button>
+          <button id="timer-stop">⏸ Stop</button>
+          <button id="timer-reset">↺ Reset</button>
+        </div>
+      </section>
+
+      <!-- To-Do List Widget -->
+      <section id="todo-list" class="widget widget--todo">
+        <div class="widget-header">
+          <h2>To-Do List</h2>
+          <!-- Sort control -->
+          <div class="sort-row">
+            <label for="todo-sort-select">Sort:</label>
+            <select id="todo-sort-select" aria-label="Sort tasks">
+              <option value="added">Date added</option>
+              <option value="az">A → Z</option>
+              <option value="za">Z → A</option>
+              <option value="done-last">Done last</option>
+              <option value="done-first">Done first</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="todo-add-row">
+          <input id="todo-input" type="text" placeholder="Enter a new task…" />
+          <button id="todo-add-btn">Add</button>
+        </div>
+        <ul id="todo-list-ul"></ul>
+      </section>
+
+      <!-- Quick Links Widget -->
+      <section id="quick-links" class="widget widget--links">
+        <h2>Quick Links</h2>
+        <div class="links-add-row">
+          <input id="link-label-input" type="text" placeholder="Label" />
+          <input id="link-url-input"   type="url"  placeholder="https://…" />
+          <button id="link-add-btn">Add Link</button>
+        </div>
+        <p id="link-validation-msg" hidden></p>
+        <div id="links-container"></div>
+        <div id="storage-error-banner" hidden></div>
+      </section>
+
+    </div>
+    <script src="js/app.js" defer></script>
+  </body>
+</html>

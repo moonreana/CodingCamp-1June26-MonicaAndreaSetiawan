@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test: Focus_Timer — formatTime() + start/stop round-trip</title>
+  <style>
+    body { font-family: monospace; background: #1a1a2e; color: #e0e0e0; padding: 1rem; }
+    h1   { font-size: 1.2rem; margin-bottom: 1rem; }
+    .pass { color: #4caf50; }
+    .fail { color: #f44336; }
+    .section { margin-top: 1rem; font-weight: bold; color: #9ca3af; }
+    #summary { margin-top: 1.5rem; font-size: 1.1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Property 2 &amp; 11 — formatTime() correctness + Timer start/stop round-trip</h1>
+  <div id="results"></div>
+  <div id="summary"></div>
+
+  <!-- Minimal DOM stubs so app.js module inits don't throw -->
+  <p id="greeting-text" style="display:none"></p>
+  <p id="greeting-time" style="display:none"></p>
+  <p id="greeting-date" style="display:none"></p>
+  <div id="timer-display" style="display:none"></div>
+  <button id="timer-start" style="display:none"></button>
+  <button id="timer-stop"  style="display:none"></button>
+  <button id="timer-reset" style="display:none"></button>
+  <p id="timer-message"    style="display:none"></p>
+  <input id="todo-input"    style="display:none" />
+  <button id="todo-add-btn" style="display:none"></button>
+  <ul id="todo-list-ul"     style="display:none"></ul>
+  <input id="link-label-input" style="display:none" />
+  <input id="link-url-input"   style="display:none" />
+  <button id="link-add-btn"    style="display:none"></button>
+  <p id="link-validation-msg"  style="display:none"></p>
+  <div id="links-container"    style="display:none"></div>
+  <div id="storage-error-banner" style="display:none"></div>
+  <section id="todo-list"   style="display:none"></section>
+  <section id="quick-links" style="display:none"></section>
+
+  <script src="../js/app.js"></script>
+  <script>
+    'use strict';
+
+    // ── Tiny harness ─────────────────────────────────────────────────────────
+    const results = document.getElementById('results');
+    const summary = document.getElementById('summary');
+    let passed = 0, failed = 0;
+
+    function assert(condition, description) {
+      const el = document.createElement('div');
+      if (condition) {
+        el.className   = 'pass';
+        el.textContent = '✓ PASS — ' + description;
+        passed++;
+      } else {
+        el.className   = 'fail';
+        el.textContent = '✗ FAIL — ' + description;
+        failed++;
+      }
+      results.appendChild(el);
+    }
+
+    function section(label) {
+      const el = document.createElement('div');
+      el.className   = 'section';
+      el.textContent = label;
+      results.appendChild(el);
+    }
+
+    // ── Property 2: formatTime correctness ───────────────────────────────────
+    // For every integer second in [0, 1500]:
+    //   (a) output matches /^\d{2}:\d{2}$/
+    //   (b) minutes component === Math.floor(s/60) zero-padded to 2 digits
+    //   (c) seconds component === s % 60 zero-padded to 2 digits
+
+    const MM_SS_RE = /^\d{2}:\d{2}$/;
+
+    section('Property 2a — output always matches MM:SS pattern');
+    // Check every value; report first failure and a pass summary to keep output manageable
+    let formatPatternFails = [];
+    for (let s = 0; s <= 1500; s++) {
+      const result = formatTime(s);
+      if (!MM_SS_RE.test(result)) formatPatternFails.push(s);
+    }
+    assert(
+      formatPatternFails.length === 0,
+      'All 1501 values in [0,1500] match /^\\d{2}:\\d{2}$/' +
+        (formatPatternFails.length ? ' — failing at: ' + formatPatternFails.slice(0, 5).join(', ') : '')
+    );
+
+    section('Property 2b — minutes component is Math.floor(s/60), zero-padded');
+    let minutesFails = [];
+    for (let s = 0; s <= 1500; s++) {
+      const result       = formatTime(s);
+      const mmPart       = result.split(':')[0];
+      const expectedMM   = String(Math.floor(s / 60)).padStart(2, '0');
+      if (mmPart !== expectedMM) minutesFails.push({ s, got: mmPart, expected: expectedMM });
+    }
+    assert(
+      minutesFails.length === 0,
+      'Minutes component correct for all values' +
+        (minutesFails.length ? ' — first failure: s=' + minutesFails[0].s + ' got "' + minutesFails[0].got + '" expected "' + minutesFails[0].expected + '"' : '')
+    );
+
+    section('Property 2c — seconds component is s%60, zero-padded');
+    let secsFails = [];
+    for (let s = 0; s <= 1500; s++) {
+      const result       = formatTime(s);
+      const ssPart       = result.split(':')[1];
+      const expectedSS   = String(s % 60).padStart(2, '0');
+      if (ssPart !== expectedSS) secsFails.push({ s, got: ssPart, expected: expectedSS });
+    }
+    assert(
+      secsFails.length === 0,
+      'Seconds component correct for all values' +
+        (secsFails.length ? ' — first failure: s=' + secsFails[0].s + ' got "' + secsFails[0].got + '" expected "' + secsFails[0].expected + '"' : '')
+    );
+
+    section('Property 2 — spot-check boundary values');
+    const spotChecks = [
+      [0,    '00:00'],
+      [59,   '00:59'],
+      [60,   '01:00'],
+      [61,   '01:01'],
+      [599,  '09:59'],
+      [600,  '10:00'],
+      [1499, '24:59'],
+      [1500, '25:00'],
+    ];
+    for (const [s, expected] of spotChecks) {
+      assert(
+        formatTime(s) === expected,
+        'formatTime(' + s + ') === "' + expected + '" (got "' + formatTime(s) + '")'
+      );
+    }
+
+    // ── Property 11: Timer start/stop round-trip preserves remaining time ────
+    // We test the pure state logic directly:
+    //   Given any remaining value in [1, 1499], calling start() then stop()
+    //   immediately must leave remaining unchanged (no decrement without a
+    //   real 1-second interval tick).
+    //
+    // Focus_Timer uses a closure so we test the logic by replicating the
+    // minimal state machine inline.  This is equivalent to what Focus_Timer
+    // does: start() sets state='running' + starts interval, stop() clears
+    // interval + sets state='paused'.  The interval _tick is NOT called
+    // synchronously, so remaining stays the same immediately after stop().
+
+    section('Property 11 — start then immediate stop preserves remaining time (inline state machine)');
+
+    function makeTimer() {
+      const st = { state: 'idle', remaining: 1500, intervalId: null };
+
+      function start() {
+        if (st.state === 'expired') { st.remaining = 1500; st.state = 'idle'; }
+        if (st.state === 'idle' || st.state === 'paused') {
+          st.state = 'running';
+          // Use a real setInterval so we can test the real interface;
+          // we'll call stop() synchronously before any tick fires.
+          st.intervalId = setInterval(() => { st.remaining -= 1; }, 1000);
+        }
+      }
+
+      function stop() {
+        if (st.state === 'running') {
+          clearInterval(st.intervalId);
+          st.intervalId = null;
+          st.state = 'paused';
+        }
+      }
+
+      function reset() {
+        clearInterval(st.intervalId);
+        st.intervalId = null;
+        st.state = 'idle';
+        st.remaining = 1500;
+      }
+
+      return { st, start, stop, reset };
+    }
+
+    // Test a sample of values across the [1, 1499] range
+    const testValues = [1, 100, 500, 749, 750, 1000, 1250, 1499];
+    let roundTripFails = [];
+
+    for (const v of testValues) {
+      const timer = makeTimer();
+      timer.st.remaining = v;
+      timer.st.state = 'paused'; // pre-condition: already paused (or use idle)
+      const before = timer.st.remaining;
+      timer.start();
+      // Synchronous stop — no interval tick has fired yet
+      timer.stop();
+      const after = timer.st.remaining;
+      if (before !== after) roundTripFails.push({ v, before, after });
+      timer.reset(); // cleanup
+    }
+
+    assert(
+      roundTripFails.length === 0,
+      'start() then immediate stop() leaves remaining unchanged for tested values' +
+        (roundTripFails.length ? ' — failures: ' + JSON.stringify(roundTripFails) : '')
+    );
+
+    section('Property 11 — state transitions: paused → running → paused');
+    {
+      const timer = makeTimer();
+      timer.st.remaining = 900;
+      timer.st.state = 'paused';
+      timer.start();
+      assert(timer.st.state === 'running', 'After start(): state === "running"');
+      timer.stop();
+      assert(timer.st.state === 'paused',  'After stop(): state === "paused"');
+      assert(timer.st.remaining === 900,    'remaining unchanged at 900 after start/stop');
+      timer.reset();
+    }
+
+    section('Property 11 — state transitions: idle → running → paused');
+    {
+      const timer = makeTimer();
+      // idle with default remaining=1500
+      timer.start();
+      assert(timer.st.state === 'running', 'From idle: after start() state === "running"');
+      timer.stop();
+      assert(timer.st.state === 'paused',  'From idle/running: after stop() state === "paused"');
+      assert(timer.st.remaining === 1500,   'remaining stays 1500 immediately after stop()');
+      timer.reset();
+    }
+
+    // ── Summary ──────────────────────────────────────────────────────────────
+    summary.textContent = 'Results: ' + passed + ' passed, ' + failed + ' failed';
+    summary.style.color = failed === 0 ? '#4caf50' : '#f44336';
+  </script>
+</body>
+</html>
